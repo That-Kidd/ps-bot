@@ -3,13 +3,13 @@ from enum import Enum
 from utils.constants import VERSION, OTHER_TIMEOUT, BLACKLIST_MESSAGE
 
 class Color(Enum):
-    DEFAULT = 0x854BF7
+    DEFAULT = 7475128
     GREEN = 0x22EA0D
     RED = 0xF42B00
     YELLOW = 0xD2D624
 
 class Embed_t(Enum):
-    DEFAULT_FOOTER = f"Made by hzh. ({VERSION})"
+    DEFAULT_FOOTER = f"Hosted by That-Kidd. ({VERSION})"
     QR_FOOTER1 = "Respond with the number of your desired game, or type 'EXIT' to quit."
     QR_FOOTER2 = "Respond with the number of your desired save, or type 'BACK' to go to the game menu."
 
@@ -35,33 +35,57 @@ embhttp = discord.Embed(
 embhttp.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
 embEncrypted1 = discord.Embed(
-    title="Resigning process: Encrypted",
-    description="Please attach at least two encrypted savefiles that you want to upload (.bin and non bin). Or type 'EXIT' to cancel command.",
+    title="Resigning Process: Upload Encrypted Saves",
+    description="Please upload at least two encrypted save files (PS4 save). \nThis is the `.bin` and non bin `file`\n\n Or type `EXIT` to cancel the command.",
+    image="https://cdn.discordapp.com/attachments/1381758125517836288/1381758592595529881/image.png?ex=6848ae78&is=68475cf8&hm=d41d012f35316c1dd822d2cbf673b78190f8b619f736dff9967c82b316b48ebe&",
     colour=Color.DEFAULT.value
 )
+embEncrypted1.add_field(
+        name="Note:",
+        value="- These files are usually located in a folder named: `CUSAXXXXX`\n- You can also supply the [Google Drive Link](<https://youtu.be/6wJDeWYuiFE?si=FtHvsQdfxids4lsK>) containing your files.\n- You can also supply multiple pairs of bin and files. Just make sure you have the matching pair.",
+        inline=False,
+    )
+embEncrypted1.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 embEncrypted1.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
 embDecrypt1 = discord.Embed(
-    title="Decrypt Process",
-    description="Please attach at least two encrypted savefiles that you want to upload (.bin and non bin). Or type 'EXIT' to cancel command.",
+    title="Decrypt Process: Upload Encrypted Save",
+    description="Please upload at least two encrypted save files (PS4 save). \nThis is the `.bin` and non bin `file`\n\n Or type `EXIT` to cancel the command.",
+    image="https://cdn.discordapp.com/attachments/1381758125517836288/1381758592595529881/image.png?ex=6848ae78&is=68475cf8&hm=d41d012f35316c1dd822d2cbf673b78190f8b619f736dff9967c82b316b48ebe&",
     colour=Color.DEFAULT.value
 )
+embDecrypt1.add_field(
+        name="Note:",
+        value="- These files are usually located in a folder named: `CUSAXXXXX`\n- You can also supply the [Google Drive Link](<https://youtu.be/6wJDeWYuiFE?si=FtHvsQdfxids4lsK>) containing your files.\n- You can also supply multiple pairs of bin and files. Just make sure you have the matching pair.",
+        inline=False,
+    )
 embDecrypt1.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
 emb14 = discord.Embed(
-    title="Resigning process: Decrypted",
-    description="Please attach at least two encrypted savefiles that you want to upload (.bin and non bin). Or type 'EXIT' to cancel command.",
-    colour=Color.DEFAULT.value
+    title="Decryption process: Provide Encrypted save for re-encryption ",
+    description="Please upload at least two encrypted save files (PS4 save). \nThis is the `.bin` and non bin `file`\n\n Or type `EXIT` to cancel the command.",
+    image="https://cdn.discordapp.com/attachments/1381758125517836288/1381758592595529881/image.png?ex=6848ae78&is=68475cf8&hm=d41d012f35316c1dd822d2cbf673b78190f8b619f736dff9967c82b316b48ebe&",colour=Color.DEFAULT.value
 )
+emb14.add_field(
+        name="Note:",
+        value="- These files are usually located in a folder named: `CUSAXXXXX`\n- You can also supply the [Google Drive Link](<https://youtu.be/6wJDeWYuiFE?si=FtHvsQdfxids4lsK>) containing your files.\n- You can also supply multiple pairs of bin and files. Just make sure you have the matching pair.",
+        inline=False,
+    )
 emb14.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
 emb20 = discord.Embed(
     title="Re-region process: Upload encrypted files from the FOREIGN region",
-    description="Please attach at least two encrypted savefiles that you want to upload (.bin and non bin). Or type 'EXIT' to cancel command.",
+    description="Please upload at least two encrypted save files (PS4 save). \nThis is the `.bin` and non bin `file`\n\n Or type `EXIT` to cancel the command.",
+    image="https://cdn.discordapp.com/attachments/1381758125517836288/1381758592595529881/image.png?ex=6848ae78&is=68475cf8&hm=d41d012f35316c1dd822d2cbf673b78190f8b619f736dff9967c82b316b48ebe&",
     colour=Color.DEFAULT.value
 )
+emb20.add_field(
+        name="Note:",
+        value="- These files are usually located in a folder named: `CUSAXXXXX`\n- You can also supply the [Google Drive Link](<https://youtu.be/6wJDeWYuiFE?si=FtHvsQdfxids4lsK>) containing your files.\n- You can also supply multiple pairs of bin and files. Just make sure you have the matching pair.",
+        inline=False,
+    )
+emb20.add_field(name='THIS IS THE SAVE THAT YOU WANT TO CHANGE THE REGION OF!', value='This is the save you want to region change')
 emb20.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
 emb21 = discord.Embed(
     title="Re-region process: Upload encrypted files from YOUR region",
     description="Please attach two encrypted savefiles that you want to upload (.bin and non bin). Or type 'EXIT' to cancel command.",
@@ -322,6 +346,13 @@ embgs = discord.Embed(
     colour=Color.DEFAULT.value
 )
 embgs.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
+
+embsl = discord.Embed(
+    title="Gamesaves: Second layer\n{displaysave}",
+    description="Checking for supported second layer encryption/compression...",
+    colour=Color.DEFAULT.value
+)
+embsl.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
 embc = discord.Embed(
     title="Processing",
@@ -753,3 +784,25 @@ embwlcom = discord.Embed(
 )
 embwlcom.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
+#Kidds welcome msg 
+embwlcom1 = discord.Embed(
+        color=7475128,
+        title="Welcome to PS Bot!",
+        description="This bot is designed to allow editing of ps4 saves!\n Such as resigning others saves, converting saves to pc or vice versa, and customizing your saves! This is a free alternative to Save Wizard; The bot uses a jailbroken PS4 to handle the modifaction of PS4 saves.\n",
+        thumbnail="https://media.discordapp.net/attachments/1381758125517836288/1381758459669909636/image.png?ex=68568618&is=68553498&hm=a18899a34382b9cbdc417053e1a8b1a5b37ccbf32f894c95cca480b34020aa47&=&format=webp&quality=lossless"
+    )
+embwlcom2 = discord.Embed(
+        color=7475128,
+        title="PS Bot Command List",
+        description="To get started using the bot, here is a list of available commands you can use!\n\n### Main Commands: \n`/resign` - Use other people’s saves on your account \n`/decrypt` - exports the raw contents of your save to use in save editors and or hex editors. \n`/encrypt` - imports raw data into your supplied save file \n`/reregion` - change the region of saves to work on your version of games\n\n### Miscellaneous Commands \n`/psn` - allows you to search users on psn\n`/store_accountid` - allows you to set the resign id. The bot will remember who to resign to\n`/quick resign` - allows you to resign saves that <@285251932505767936> have provided. The bot has a decent selection \n`/quick codes` - allows you to input SaveWizard hex quick codes into your save\n`/change title` - allows you customize the title and sub title of a save file\n`/change picture` - allows you to upload a custom image for you save file\n\n### Advanced Commands\n`/convert` - convert supported games from ps4 to pc or vice versa \n`/createsave` - create a ps4 save from scratch using raw files\n`/sfo read` - obtain the param.sfo \n`/sfo write` - patch the parameters in the param.sfo\n`/sealed_key decrypt` - decrypted the sealed key of a save file (.bin file)",     
+)
+embwlcom3 = discord.Embed(
+        color=7475128,
+        title="Important Notes:",
+        description="\nif the bot says application didn’t respond: it means the bot is **OFFLINE**!\n\n`/ping` to see the status of the bot\n`/help` to get more detailed information on each command\ncheck out our [Video Guides](<https://youtube.com/playlist?list=PLxevmZH4AJusnb9VnOpRojfe8fQndy1Js&si=uZn3tYo0mFweknvQ>) on the bot \nIf you wish to see the video tutorials again use `/tutorial`\n\nIf you need further help please ask in <#1212821931707858984> or <#1195354790339821639>!",
+        image="https://media.discordapp.net/attachments/1381758125517836288/1381758318191575151/4k-Playstation-Buttons-Background-4K-Wallpaper.png?ex=685685f6&is=68553476&hm=ec83e66312a59ff748d00bc664eac6b7a1728935339d6b8593397b9c80a45378&=&format=webp&quality=lossless&width=550&height=200"
+)
+embwlcom3.set_footer(
+    text="Hosted by That_Kidd | Help from Owwlz",
+    icon_url="https://cdn.discordapp.com/attachments/1381758125517836288/1385727626097852416/pfp.png?ex=68571eeb&is=6855cd6b&hm=0736f514d6895836a4d46641992ac9520ecc5a4d2660743741695ee1077cc448&"
+)
