@@ -57,6 +57,7 @@ cogs_list = [
     "resign",
     "sealed_key",
     "sfo",
+    "guide"
 ]
 
 if __name__ == "__main__":
