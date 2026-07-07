@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 from psnawp_api import PSNAWP
 from psnawp_api.core.psnawp_exceptions import PSNAWPError
-from utils.constants import NPSSO_global as NPSSO
+from utils.constants import psnawp
 from utils.helpers import accountIDformat
 
-psnawp = PSNAWP(NPSSO)
+
 
 class psn(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -15,7 +15,7 @@ class psn(commands.Cog):
         await ctx.defer()
         try:
             foundusr = psnawp.user(online_id=psn_usrname)
-        except PSNAWPException as exc:
+        except PSNAWPError:
             await ctx.respond(f"{psn_usrname} could not be found!")
             return
         
