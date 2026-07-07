@@ -37,7 +37,7 @@ from data.crypto.tr6r_crypt import Crypt_TR6R
 from data.crypto.strider_crypt import Crypt_Strider
 from data.crypto.diablo3_crypt import Crypt_Diablo3
 from data.crypto.alieniso_crypt import Crypt_AlienIso
-from data.crypto.shantaescurse import Crypt_ShantaeSCurse
+from data.crypto.shantaescurse_crypt import Crypt_ShantaeSCurse
 from data.crypto.mafia3_crypt import Crypt_Mafia3
 from data.crypto.deadrising_crypt import Crypt_DeadRising
 from data.crypto.kh3_crypt import Crypt_KH3
@@ -51,6 +51,11 @@ from data.crypto.saofb_crypt import Crypt_SAOFB
 from data.crypto.mhr_crypt import Crypt_MHR
 from data.crypto.doa5lr_crypt import Crypt_DoA5LR
 from data.crypto.re6_crypt import Crypt_RE6
+from data.crypto.mearth_crypt import Crypt_MEarth
+from data.crypto.gs3_crypt import Crypt_GS3
+from data.crypto.jforce_crypt import Crypt_JForce
+from data.crypto.balatro_crypt import Crypt_Balatro
+from data.crypto.wwe2k25_crypt import Crypt_WWE2K25
 
 from types import SimpleNamespace
 
@@ -73,6 +78,7 @@ Crypto = SimpleNamespace(
     PoPersia=Crypt_PoPersia, LunarR=Crypt_LunarR, DStranding=Crypt_DStranding,
     FC5=Crypt_FC5, DL2=Crypt_DL2, FFPixel=Crypt_FFPixel,
     SAOFB=Crypt_SAOFB, MHR=Crypt_MHR, DoA5LR=Crypt_DoA5LR,
-    RE6=Crypt_RE6
+    RE6=Crypt_RE6, MEarth=Crypt_MEarth, GS3=Crypt_GS3,
+    JForce=Crypt_JForce, Balatro=Crypt_Balatro, WWE2K25=Crypt_WWE2K25
 )
 

@@ -23,26 +23,38 @@ class Crypt_NMS:
     JSON_ENABLE = True
     MAX_JSON_NESTING_DEPTH = 10
 
+    # Max blocks to decompress
+    MAX_BLOCKS = 200
+
     class NMS(CC):
         def __init__(self, filepath: str) -> None:
             super().__init__(filepath, in_place=False)
 
         async def compress(self) -> None:
+            assert not self.in_place
+
+            size = await self.w_stream.seek(0, 2)
             while await self.read():
-                await self.w_stream.seek(0, 2)
                 comp = lz4.block.compress(self.chunk, store_size=False)
                 compsize = uint32(len(comp), "little").as_bytes
                 decompsize = uint32(len(self.chunk), "little").as_bytes
+                l = len(Crypt_NMS.LZ4_MAGIC) + len(compsize) + len(decompsize) + 4 + len(comp)
+                if size + l > self.SAVESIZE_MAX:
+                    raise CryptoError("Unsupported save!")
                 await self.w_stream.write(Crypt_NMS.LZ4_MAGIC)
                 await self.w_stream.write(compsize)
                 await self.w_stream.write(decompsize)
                 await self.w_stream.write(bytes([0] * 4))
                 await self.w_stream.write(comp)
+                size += l
 
         async def decompress(self) -> None:
+            assert not self.in_place
+
+            size = await self.w_stream.seek(0, 2)
             ptr = 0
+            blocks = 0
             while True:
-                size = await self.w_stream.seek(0, 2)
                 off = await self.find(Crypt_NMS.LZ4_MAGIC, ptr)
                 if off == -1:
                     break
@@ -66,7 +78,13 @@ class Crypt_NMS:
                     decomp = lz4.block.decompress(comp, uncompressed_size=decompsize)
                 except lz4.block.LZ4BlockError:
                     raise CryptoError("Invalid save!")
+                assert len(decomp) == decompsize
                 await self.w_stream.write(decomp)
+                size += decompsize
+
+                blocks += 1
+                if blocks > Crypt_NMS.MAX_BLOCKS:
+                    raise CryptoError("Unsupported save!")
 
     @staticmethod
     async def decrypt_file(filepath: str) -> None:
@@ -146,26 +164,21 @@ class Crypt_NMS:
         return keys
 
     @staticmethod
-    def map_keys(node: Any, mapping: dict[str, str], depth: int = 0, result: dict[str, Any] | None = None) -> dict[str, Any]:
+    def map_keys(node: Any, mapping: dict[str, str], depth: int = 0) -> dict[str, Any] | list[Any]:
         """Replace the obfuscated keys with the value in the mapping parameter."""
         if depth > Crypt_NMS.MAX_JSON_NESTING_DEPTH:
             raise CryptoError("Unsupported save!")
-        if result is None:
-            result = {}
+        result = {}
 
         if isinstance(node, dict):
             for key, val in node.items():
                 # check if it exists in mapping first
-                if not mapping.get(key):
+                if key not in mapping:
                     result[key] = val
                     continue
 
-                if key in mapping:
-                    result[mapping[key]] = val
-
                 if isinstance(val, (dict, list)):
-                    new_result = {}
-                    result[mapping[key]] = Crypt_NMS.map_keys(val, mapping, depth + 1, new_result)
+                    result[mapping[key]] = Crypt_NMS.map_keys(val, mapping, depth + 1)
                 else:
                     result[mapping[key]] = val
 
@@ -173,8 +186,7 @@ class Crypt_NMS:
             result = []
             for item in node:
                 if isinstance(item, (dict, list)):
-                    new_result = {}
-                    result.append(Crypt_NMS.map_keys(item, mapping, depth + 1, new_result))
+                    result.append(Crypt_NMS.map_keys(item, mapping, depth + 1))
                 else:
                     result.append(item)
 

@@ -1,6 +1,6 @@
 [project]
 name = "HTOS"
-version = "3.2.0"
+version = "3.3.0"
 description = "A discord bot and app with tons of functionalities that can handle PS4 saves using a jailbroken PS4."
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -12,6 +12,7 @@ dependencies = [
     "aiosqlite>=0.21.0",
     "anycrc>=1.3.6",
     "audioop-lts>=0.2.2 ; python_full_version >= '3.13'",
+    "cityhash>=0.4.10",
     "crc32c>=2.7.1",
     "google-api-python-client>=2.179.0",
     "google-auth-httplib2>=0.2.0",

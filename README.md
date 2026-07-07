@@ -22,12 +22,13 @@ Certain games need to have an extra implementation for it to work out of the box
 | Game                                                | Second layer            | PS4 -> PC conversion and vice versa | Quick cheats             | Extra re-region support            |
 | --------------------------------------------------- | ----------------------- | ----------------------------------- | ------------------------ | -----------------------------------|
 | Alien: Isolation                                    | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| Balatro                                             | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Borderlands 3                                       | :white_check_mark:      | :white_check_mark:                  | :black_circle:           | :white_circle:                     |
 | Castle Crashers Remastered                          | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Crisis Core: Final Fantasy VII                      | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Dark Souls: Remastered                              | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
-| Dead Island 1                                       | :large_blue_circle:     | :white_circle:                      | :black_circle:           | :white_circle:                     |
-| Dead Island 2                                       | :large_blue_circle:     | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| Dead Island 1                                       | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| Dead Island 2                                       | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Dead or Alive 5: Last Round                         | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Dead Rising                                         | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Death Stranding                                     | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
@@ -37,7 +38,9 @@ Certain games need to have an extra implementation for it to work out of the box
 | Dying Light 2                                       | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Far Cry 5                                           | :large_blue_circle:     | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | FINAL FANTASY I-VI Pixel Remaster                   | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| Goat Simulator 3                                    | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Grand Theft Auto V                                  | :white_check_mark:      | :white_check_mark:                  | :large_blue_circle:      | :white_circle:                     |
+| Jump Force                                          | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Kingdom Hearts III                                  | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | L.A. Noire                                          | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Like a Dragon: Ishin                                | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
@@ -46,6 +49,8 @@ Certain games need to have an extra implementation for it to work out of the box
 | Metal Gear Solid V: Ground Zeroes                   | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_check_mark:                 |
 | Metal Gear Solid V: The Definitive Experience       | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_check_mark:                 |
 | Metal Gear Solid V: The Phantom Pain                | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_check_mark:                 |
+| Middle-Earth: Shadow of Mordor                      | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| Middle-Earth: Shadow of War                         | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Minecraft: Legacy Edition                           | :white_circle:          | :white_circle:                      | :black_circle:           | :white_check_mark:                 |
 | Monster Hunter Rise                                 | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Monster Hunter World: Iceborne                      | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
@@ -61,7 +66,7 @@ Certain games need to have an extra implementation for it to work out of the box
 | Resident Evil 6                                     | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Resident Evil 7: Biohazard                          | :white_check_mark:      | :black_circle:                      | :black_circle:           | :white_circle:                     |
 | Resident Evil: Resistance                           | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
-| Resident Evil: Revelations 2                        | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| Resident Evil: Revelations 2                        | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_check_mark:                 |
 | Resident Evil Village                               | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Shantae and the Pirate's Curse                      | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Shin Megami Tensei 5                                | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
@@ -86,6 +91,7 @@ Certain games need to have an extra implementation for it to work out of the box
 | Uncharted 4                                         | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Uncharted: The Lost Legacy                          | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Uncharted: The Nathan Drake Collection              | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
+| WWE 2K25                                            | :white_check_mark:      | :white_circle:                      | :black_circle:           | :white_circle:                     |
 | Xenoverse 2                                         | :white_check_mark:      | :large_blue_circle:                 | :black_circle:           | :white_check_mark:                 |
 
 > [!NOTE]
@@ -104,8 +110,6 @@ That is, if you want to make modifications to the savegame without corrupting it
 :white_check_mark:: Assumed to be fully implemented.  
 
 :large_blue_circle:: Partially implemented:  
-Dead Island 1: There may be unimplemented checksums.  
-Dead Island 2: Unimplemented checksums.  
 Far Cry 5: Any compressed image data will not be decompressed.  
 Grand Theft Auto V: Only money quick cheat is implemented.  
 Nioh 2: Checksum fix is for version 01.27 only.  
@@ -136,6 +140,7 @@ Xenoverse 2: The conversion will only make the savegame work on the PC save edit
 * [AxrzZ](https://github.com/AxrzZ)
 * [Batang](https://github.com/B-a-t-a-n-g)
 * [Batang](https://github.com/B-a-t-a-n-g): [Dying_Light_2_Checksum](https://github.com/B-a-t-a-n-g/Dying_Light_2_Checksum)
+* [Bawsdeep](https://gitlab.com/BawsDeep): [di2-checksums](https://gitlab.com/BawsDeep/di2-checksums)
 * [Bawsdeep](https://gitlab.com/BawsDeep): [xenoverse2-crypt-checksum](https://gitlab.com/BawsDeep/xenoverse2-crypt-checksum)
 * [Bawsdeep](https://gitlab.com/BawsDeep): [xenoverse2-converter](https://gitlab.com/BawsDeep/xenoverse2-converter)
 * [Brotherguns](https://github.com/brotherguns)
