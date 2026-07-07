@@ -116,7 +116,7 @@ else:
     psnawp = None
 
 # BOT INITIALIZATION
-activity = discord.Activity(type=discord.ActivityType.listening, name="HTOS database")
+activity = discord.Activity(type=discord.ActivityType.playing, name="on a JB PS4")
 intents = discord.Intents.default()
 intents.message_content = True
 
