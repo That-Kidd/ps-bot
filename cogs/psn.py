@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from psnawp_api import PSNAWP
-from psnawp_api.core.psnawp_exceptions import PSNAWPException
+from psnawp_api.core.psnawp_exceptions import PSNAWPError
 from utils.constants import NPSSO_global as NPSSO
 from utils.helpers import accountIDformat
 
