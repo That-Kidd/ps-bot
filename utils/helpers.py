@@ -29,7 +29,7 @@ from utils.embeds import (
     embgdt, embUtimeout, embnt, emb8, embvalidpsn, cancel_notify_emb,
     embe, embuplSuccess, embuplSuccess1, embencupl,
     embenc_out, embencinst, embgdout, embgames, embgame, embwlcom,
-    embfn, embpn, embnvBin, embFileLarge, embnvSys
+    embfn, embpn, embnvBin, embFileLarge, embnvSys, embwlcom1, embwlcom2, embwlcom3
 )
 from utils.exceptions import PSNIDError, FileError, WorkspaceError, TaskCancelledError, OrbisError
 from utils.workspace import fetch_accountid_db, write_accountid_db, cleanup, cleanup_simple, write_threadid_db, get_savenames_from_bin_ext, blacklist_check_db
@@ -83,13 +83,18 @@ class ThreadButton(discord.ui.View):
         await interaction.response.send_message("Creating thread...", ephemeral=True)
 
         emb = embwlcom.copy()
+        emb1 = embwlcom1.copy()
+        emb2 = embwlcom2.copy()
+        emb3 = embwlcom3.copy()
         emb.description = emb.description.format(user=interaction.user.name)
         ids_to_remove = []
 
         try:
             thread = await interaction.channel.create_thread(name=interaction.user.name, auto_archive_duration=10080)
             await thread.send(interaction.user.mention)
-            await thread.send(embed=emb)
+            await thread.send(embed=emb1)
+            await thread.send(embed=emb2)
+            await thread.send(embed=emb3)
             ids_to_remove = await write_threadid_db(interaction.user.id, thread.id)
             await interaction.edit_original_response(content=f"Thread created. Head over to {thread.mention}.")
         except (WorkspaceError, discord.Forbidden) as e:
