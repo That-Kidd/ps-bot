@@ -6,6 +6,7 @@ import aiofiles
 import aiofiles.os
 import errno
 import pathlib
+import base64
 
 from discord.ext import pages
 from dataclasses import dataclass
@@ -929,3 +930,12 @@ async def run_qr_paginator(d_ctx: DiscordContext, stored_saves: dict[str, dict[s
                 raise WorkspaceError("Failed to get saves!")
             return ReturnTypes.SUCCESS, [os.path.join(selected_save, x) for x in savenames]
 
+# functions for psn command
+def accountIDformat(accountID19):
+        usrid = int(accountID19)  #Base 19 
+        userhexid = "{0:x}".format(usrid)  #Base 16 
+        user64id = base64.b64encode(usrid.to_bytes(8, "little")).decode()  #Base 64
+        if len(userhexid) == 15: 
+            ommitedChar = '0' ; userhexid = ommitedChar + userhexid
+        else: pass
+        return userhexid
