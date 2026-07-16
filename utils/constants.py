@@ -4,18 +4,12 @@ import logging.config
 import re
 import errno
 import time
-from zipfile import (
-    #ZIP_BZIP2,
-    #ZIP_DEFLATED,
-    #ZIP_LZMA,
-    ZIP_STORED
-)
 from sys import argv
 from discord.ext import commands
 from psnawp_api import PSNAWP
 from utils.conversions import mb_to_bytes, saveblocks_to_bytes, minutes_to_seconds, bytes_to_mb, hours_to_seconds
 
-VERSION = "v3.3.0"
+VERSION = "v4.0.0"
 
 # LOGGER
 def setup_logger(path: str, logger_type: str, level: str) -> logging.Logger:
@@ -281,6 +275,8 @@ GS3_TITLEID = frozenset(["CUSA46679", "CUSA46680"])
 JFORCE_TITLEID = frozenset(["CUSA11638", "CUSA11625", "CUSA10830", "CUSA11685"])
 BALATRO_TITLEID = frozenset(["CUSA47499", "CUSA47498"])
 WWE_2K25_TITLEID = frozenset(["CUSA48576", "CUSA48575"])
+BO1_TITLEID = frozenset(["CUSA58530", "CUSA59244", "CUSA57547"])
+BO2_TITLEID = frozenset(["CUSA59279", "CUSA57548"])
 
 def verify_titleids() -> None:
     from utils.orbis import check_titleid
@@ -292,7 +288,7 @@ def verify_titleids() -> None:
         LOH_TRAILS_ZERO_AZURE, LOH_TRAILS_DAYBREAK_TITLEID, FF7CC_TITLEID, TOSR_TITLEID, CCR_TITLEID, TOB_TITLEID, TR6R_TITLEID, STRIDER_TITLEID,
         DIABLO3_TITLEID, ALIEN_ISO_TITLEID, SHANTAE_SCURSE_TITLEID, MAFIA3_TITLEID, DEADRISING_TITLEID, KH3_TITLEID, PO_PERSIA_TITLEID,
         LUNAR_R_TITLEID, DSTRANDING_TITLEID, FC5_TITLEID, FF_PIXEL_TITLEID, SAO_FB_TITLEID, MHR_TITLEID, DOA5_LR_TITLEID, RE6_TITLEID,
-        MEARTH_SOM_TITLEID, MEARTH_SOW_TITLEID, GS3_TITLEID, JFORCE_TITLEID, BALATRO_TITLEID, WWE_2K25_TITLEID
+        MEARTH_SOM_TITLEID, MEARTH_SOW_TITLEID, GS3_TITLEID, JFORCE_TITLEID, BALATRO_TITLEID, WWE_2K25_TITLEID, BO1_TITLEID, BO2_TITLEID
     ])
     for ts in title_ids:
         for t in ts:
@@ -300,7 +296,8 @@ def verify_titleids() -> None:
 SPECIAL_REREGION_TITLEIDS = frozenset.union(XENO2_TITLEID, MGSV_GZ_TITLEID, MGSV_TPP_TITLEID, MINECRAFT_TITLEID)
 
 # BOT CONFIG
-FILE_LIMIT_DISCORD = mb_to_bytes(500) # discord file limit for nitro users
+DISCORD_SAVEGAME_MAX = mb_to_bytes(500) # discord file limit for nitro users
+DISCORD_TOTAL_SIZE_LIMIT = mb_to_bytes(500) # discord file limit for nitro users
 SYS_FILE_MAX = mb_to_bytes(1) # sce_sys files are not that big so 1 MB, keep this low
 MAX_FILES = 100
 UPLOAD_TIMEOUT = minutes_to_seconds(10) # how long the user has to upload files or send google drive folder link
@@ -310,8 +307,6 @@ MISC_TIMEOUT = minutes_to_seconds(1) # how long single operations like cleaning 
 GENERAL_CHUNKSIZE = mb_to_bytes(32)
 COMMAND_COOLDOWN = 30 # seconds, for all general commands
 BOT_DISCORD_UPLOAD_LIMIT = mb_to_bytes(10) # 10 mb maximum when not considering boost levels
-ZIPFILE_COMPRESSION_MODE = ZIP_STORED # check the imports for all modes
-ZIPFILE_COMPRESSION_LEVEL = None # change this only if you know the range for the chosen mode
 
 PS_ID_DESC = "Your Playstation Network username. Do not include if you want to use the previous one."
 IGNORE_SECONDLAYER_DESC = "If you want the bot to neglect checking if the files inside your save can be encrypted/compressed."
@@ -358,6 +353,7 @@ CON_FAIL = frozenset([errno.ECONNREFUSED, errno.ETIMEDOUT, errno.EHOSTUNREACH, e
 CON_FAIL_MSG = "PS4 not connected!"
 
 # EMBEDS
-EMBED_DESC_LIM = 4096
-EMBED_FIELD_LIM = 25
+EMBED_TITLE_LIMIT = 256
+EMBED_DESC_LIMIT = 4096
+EMBED_FIELD_LIMIT = 25
 

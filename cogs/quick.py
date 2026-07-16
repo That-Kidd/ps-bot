@@ -2,6 +2,7 @@ import discord
 import asyncio
 import os
 import shutil
+import aiofiles.os
 from discord.ext import commands
 from discord import Option
 from aiogoogle import HTTPError
@@ -15,25 +16,32 @@ from data.cheats.exceptions import QuickCheatsError, QuickCodesError
 from utils.constants import (
     IP, PORT_FTP, PS_UPLOADDIR, MAX_FILES, BOT_DISCORD_UPLOAD_LIMIT, BASE_ERROR_MSG,
     ZIPOUT_NAME, PS_ID_DESC, SHARED_GD_LINK_DESC, CON_FAIL, CON_FAIL_MSG, COMMAND_COOLDOWN,
+    SCE_SYS_NAME, PARAM_NAME, MOUNT_LOCATION,
     logger
 )
 from utils.embeds import (
     emb_upl_savegame, embTimedOut, working_emb, embExit,
     embresb, embresbs, embRdone, embLoading, embApplied,
-    embqcCompleted, embchLoading
+    embqcCompleted, embchLoading, embzip1, embc_bulk, embCRdone_bulk
 )
 from utils.workspace import init_workspace, make_workspace, cleanup, cleanup_simple, list_stored_saves
 from utils.helpers import (
     DiscordContext, psusername, upload2, error_handling, TimeoutHelper, send_final,
     run_qr_paginator, UploadGoogleDriveChoice, UploadOpt, ReturnTypes, task_handler,
-    download_attachment
+    download_attachment, embed_construct, embed_edit
 )
-from utils.orbis import SaveBatch, SaveFile
+from utils.orbis import (
+    SaveBatch, SaveFile,
+    sfo_ctx_create, sfo_ctx_write, sfo_ctx_patch_parameters, obtainCUSA,
+    validate_savedirname, validate_savedirname_path,
+    fix_pfs_auth_code_info
+)
 from utils.exceptions import PSNIDError
 from utils.namespaces import Cheats
 from utils.extras import completed_print
 from utils.exceptions import FileError, OrbisError, WorkspaceError, TaskCancelledError
 from utils.instance_lock import INSTANCE_LOCK_global
+from utils.zip_archive import zip_unpack, zip_unpack_sfo
 
 class Quick(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -81,10 +89,7 @@ class Quick(commands.Cog):
             return
 
         if res == ReturnTypes.EXIT:
-            try:
-                await msg.edit(embed=embExit, view=None)
-            except discord.HTTPException as e:
-                logger.info(f"Error while editing msg: {e}", exc_info=True)
+            await embed_edit(msg, embExit, ignore_exc=True)
             await cleanup_simple(workspace_folders)
             await INSTANCE_LOCK_global.release(ctx.author.id)
             return
@@ -108,17 +113,23 @@ class Quick(commands.Cog):
                 savefile.path = savepath
                 await savefile.construct()
 
-                emb = embresb.copy()
-                emb.description = emb.description.format(savename=savefile.basename, i=i, savecount=batch.savecount)
+                emb = embed_construct(
+                    embresb, description_kwargs=dict(
+                        savename=savefile.basename, i=i, savecount=batch.savecount
+                    )
+                )
                 tasks = [
                     savefile.dump,
                     savefile.resign
                 ]
                 await task_handler(d_ctx, tasks, [emb])
 
-                emb = embresbs.copy()
-                emb.description = emb.description.format(savename=savefile.basename, id=playstation_id or user_id, i=i, savecount=batch.savecount)
-                await msg.edit(embed=emb)
+                await embed_edit(
+                    msg, embresbs,
+                    description_kwargs=dict(
+                        savename=savefile.basename, id=playstation_id or user_id, i=i, savecount=batch.savecount
+                    ), ignore_exc=True
+                )
                 i += 1
         except (SocketError, FTPError, OrbisError, OSError, TaskCancelledError) as e:
             status = "expected"
@@ -143,12 +154,12 @@ class Quick(commands.Cog):
             await INSTANCE_LOCK_global.release(ctx.author.id)
             return
 
-        emb = embRdone.copy()
-        emb.description = emb.description.format(printed=batch.printed, id=playstation_id or user_id)
-        try:
-            await msg.edit(embed=emb)
-        except discord.HTTPException as e:
-            logger.info(f"Error while editing msg: {e}", exc_info=True)
+        await embed_edit(
+            msg, embRdone,
+            description_kwargs=dict(
+                printed=batch.printed, id=playstation_id or user_id
+            ), ignore_exc=True
+        )
 
         zipname = ZIPOUT_NAME[0] + f"_{batch.rand_str}_1" + ZIPOUT_NAME[1]
 
@@ -168,6 +179,221 @@ class Quick(commands.Cog):
             return
 
         await cleanup(C1ftp, workspace_folders, batch.entry, mount_paths)
+        await INSTANCE_LOCK_global.release(ctx.author.id)
+
+    @quick_group.command(description="Create a save using a provided folder uploaded as a ZIP file.")
+    @commands.cooldown(1, COMMAND_COOLDOWN, commands.BucketType.user)
+    async def createsave(
+              self,
+              ctx: discord.ApplicationContext,
+              playstation_id: Option(str, description=PS_ID_DESC, default=""),
+              shared_gd_link: Option(str, description=SHARED_GD_LINK_DESC, default="")
+            ) -> None:
+
+        newUPLOAD_ENCRYPTED, newUPLOAD_DECRYPTED, newDOWNLOAD_ENCRYPTED, newPNG_PATH, newPARAM_PATH, newDOWNLOAD_DECRYPTED, newKEYSTONE_PATH = init_workspace()
+        workspace_folders = [newUPLOAD_ENCRYPTED, newUPLOAD_DECRYPTED, newDOWNLOAD_ENCRYPTED,
+                            newPNG_PATH, newPARAM_PATH, newDOWNLOAD_DECRYPTED, newKEYSTONE_PATH]
+        try: await make_workspace(ctx, workspace_folders, ctx.channel_id)
+        except (WorkspaceError, discord.HTTPException): return
+        C1ftp = FTPps(IP, PORT_FTP, PS_UPLOADDIR, newDOWNLOAD_DECRYPTED, newUPLOAD_DECRYPTED, newUPLOAD_ENCRYPTED,
+                    newDOWNLOAD_ENCRYPTED, newPARAM_PATH, newKEYSTONE_PATH, newPNG_PATH)
+
+        msg = ctx
+
+        try:
+            user_id = await psusername(ctx, playstation_id)
+            await asyncio.sleep(0.5)
+            shared_gd_folderid = await gdapi.parse_sharedfolder_link(shared_gd_link)
+            msg = await ctx.edit(embed=embzip1)
+            msg = await ctx.fetch_message(msg.id) # use message id instead of interaction token, this is so our command can last more than 15 min
+            d_ctx = DiscordContext(ctx, msg) # this is for passing into functions that need both
+
+            # download archives
+            opt = UploadOpt(UploadGoogleDriveChoice.STANDARD, True)
+            uploaded_file_paths = await upload2(
+                d_ctx, newUPLOAD_ENCRYPTED,
+                max_files=MAX_FILES, sys_files=False, ps_save_pair_upload=False, ignore_filename_check=False,
+                opt=opt
+            )
+
+            # populate sfo data
+            archives: list[tuple[str, str, str]] = [] # (path, title id, savename)
+            for entry in uploaded_file_paths:
+                for archive in entry:
+                    # grab and validate savename
+                    sfo_path = await zip_unpack_sfo(archive, newPARAM_PATH)
+                    sfo = await sfo_ctx_create(sfo_path)
+                    savename = sfo.sfo_get_param_value("SAVEDATA_DIRECTORY")
+                    validate_savedirname(savename)
+                    validate_savedirname_path(savename)
+                    title_id = obtainCUSA(sfo)
+                    archives.append(
+                        (archive, title_id, savename)
+                    )
+
+            # divide into batches to deal with dupe output saves
+            # for this to behave the same on case sensitive and case insensitive filesystems
+            # make batch dupe check condition case-insensitive
+            inp = archives
+            archive_batches: list[list[tuple[str, str, str]]] = []
+            cur_batch: list[tuple[str, str, str]] = []
+            next_batch: list[tuple[str, str, str]] = []
+            cur_batch_map: set[tuple[str, str]] = set() # (title_id, savename.lower())
+            i = 0
+            while len(inp) != 0:
+                if i == len(inp):
+                    archive_batches.append(cur_batch)
+                    cur_batch = []
+                    inp = next_batch
+                    next_batch = []
+                    cur_batch_map = set()
+                    i = 0
+                    continue
+                archive, title_id, savename = inp[i]
+                if (title_id, savename.lower()) in cur_batch_map:
+                    next_batch.append((archive, title_id, savename))
+                    i += 1
+                    continue
+                cur_batch.append((archive, title_id, savename))
+                cur_batch_map.add((title_id, savename.lower()))
+                i += 1
+        except HTTPError as e:
+            err = gdapi.get_err_str_HTTPERROR(e)
+            await error_handling(msg, err, workspace_folders, None, None, None)
+            logger.info(f"{e} - {ctx.user.name} - (expected)", exc_info=True)
+            await INSTANCE_LOCK_global.release(ctx.author.id)
+            return
+        except (PSNIDError, TimeoutError, GDapiError, FileError, TaskCancelledError, OrbisError) as e:
+            await error_handling(msg, e, workspace_folders, None, None, None)
+            logger.info(f"{e} - {ctx.user.name} - (expected)", exc_info=True)
+            await INSTANCE_LOCK_global.release(ctx.author.id)
+            return
+        except Exception as e:
+            await error_handling(msg, BASE_ERROR_MSG, workspace_folders, None, None, None)
+            logger.exception(f"{e} - {ctx.user.name} - (unexpected)")
+            await INSTANCE_LOCK_global.release(ctx.author.id)
+            return
+
+        batches = len(archive_batches)
+        i = 1
+        for batch in archive_batches:
+            mount_paths = []
+            uploaded_file_paths = []
+            savenames = []
+
+            savecount = len(batch)
+            j = 1
+            for archive, title_id, savename in batch:
+                savenames.append(savename)
+                try:
+                    # unzip archive
+                    saveblocks = await zip_unpack(archive, newUPLOAD_DECRYPTED)
+
+                    # process sfo (there are no duplicate entries in archive, no need to grab savename and title_id again)
+                    sfo_path = os.path.join(newUPLOAD_DECRYPTED, SCE_SYS_NAME, PARAM_NAME)
+                    sfo = await sfo_ctx_create(sfo_path)
+                    sfo_ctx_patch_parameters(sfo, SAVEDATA_BLOCKS=saveblocks, ACCOUNT_ID=user_id)
+                    await sfo_ctx_write(sfo, sfo_path)
+
+                    # createsave
+                    await embed_edit(
+                        msg, embc_bulk,
+                        description_kwargs=dict(
+                            savename=savename, j=j, savecount=savecount, i=i, batches=batches
+                        ), ignore_exc=True
+                    )
+
+                    rand_str = os.path.basename(newUPLOAD_DECRYPTED)
+                    temp_savename = savename + f"_{rand_str}"
+                    mount_location_new = MOUNT_LOCATION + "/" + rand_str
+                    location_to_scesys = mount_location_new + f"/{SCE_SYS_NAME}"
+
+                    task = [lambda: C1socket.socket_createsave(PS_UPLOADDIR, temp_savename, saveblocks)]
+                    await task_handler(d_ctx, task, [])
+                    uploaded_file_paths.extend([temp_savename, f"{savename}_{rand_str}.bin"])
+
+                    mount_paths.append(mount_location_new)
+                    tasks = [
+                        # now mount save and get ready to upload files to it
+                        lambda: C1ftp.make1(mount_location_new),
+                        lambda: C1ftp.make1(location_to_scesys),
+                        # dump
+                        lambda: C1socket.socket_dump(mount_location_new, temp_savename),
+                        # upload
+                        lambda: C1ftp.upload_folder(mount_location_new, newUPLOAD_DECRYPTED),
+                        lambda: C1socket.socket_update(mount_location_new, temp_savename)
+                    ]
+                    await task_handler(d_ctx, tasks, [])
+
+                    # save is ready, delete unpacked archive
+                    shutil.rmtree(newUPLOAD_DECRYPTED)
+                    await aiofiles.os.mkdir(newUPLOAD_DECRYPTED)
+
+                    # make paths for save
+                    save_dirs = os.path.join(newDOWNLOAD_ENCRYPTED, "PS4", "SAVEDATA", user_id, title_id)
+                    await aiofiles.os.makedirs(save_dirs, exist_ok=True)
+
+                    # download save at real filename path
+                    savepath = os.path.join(save_dirs, savename)
+                    tasks = [
+                        lambda: C1ftp.download_file_streamed(PS_UPLOADDIR + "/" + temp_savename, savepath),
+                        lambda: C1ftp.download_file_streamed(PS_UPLOADDIR + "/" + temp_savename + ".bin", savepath + ".bin")
+                    ]
+                    await task_handler(d_ctx, tasks, [])
+                    await fix_pfs_auth_code_info(savepath)
+                    j += 1
+                except (SocketError, FTPError, OSError, OrbisError, TaskCancelledError, FileError) as e:
+                    status = "expected"
+                    if isinstance(e, OSError) and e.errno in CON_FAIL:
+                        e = CON_FAIL_MSG
+                    elif isinstance(e, OSError):
+                        e = BASE_ERROR_MSG
+                        status = "unexpected"
+                    await error_handling(msg, e, workspace_folders, uploaded_file_paths, mount_paths, C1ftp)
+                    if status == "expected":
+                        logger.info(f"{e} - {ctx.user.name} - ({status})", exc_info=True)
+                    else:
+                        logger.exception(f"{e} - {ctx.user.name} - ({status})")
+                    await INSTANCE_LOCK_global.release(ctx.author.id)
+                    return
+                except Exception as e:
+                    await error_handling(msg, BASE_ERROR_MSG, workspace_folders, uploaded_file_paths, mount_paths, C1ftp)
+                    logger.exception(f"{e} - {ctx.user.name} - (unexpected)")
+                    await INSTANCE_LOCK_global.release(ctx.author.id)
+                    return
+
+            await embed_edit(
+                msg, embCRdone_bulk,
+                description_kwargs=dict(
+                    printed=completed_print(savenames), id=playstation_id or user_id, i=i, batches=batches
+                ), ignore_exc=True
+            )
+
+            zipname = ZIPOUT_NAME[0] + f"_{rand_str}_1" + ZIPOUT_NAME[1]
+
+            try:
+                await send_final(d_ctx, zipname, newDOWNLOAD_ENCRYPTED, shared_gd_folderid)
+
+                # clean output batch since we pass newDOWNLOAD_ENCRYPTED to send_final
+                shutil.rmtree(newDOWNLOAD_ENCRYPTED)
+                await aiofiles.os.mkdir(newDOWNLOAD_ENCRYPTED)
+            except (GDapiError, discord.HTTPException, TaskCancelledError, FileError, TimeoutError) as e:
+                if isinstance(e, discord.HTTPException):
+                    e = BASE_ERROR_MSG
+                await error_handling(msg, e, workspace_folders, uploaded_file_paths, mount_paths, C1ftp)
+                logger.info(f"{e} - {ctx.user.name} - (expected)", exc_info=True)
+                await INSTANCE_LOCK_global.release(ctx.author.id)
+                return
+            except Exception as e:
+                await error_handling(msg, BASE_ERROR_MSG, workspace_folders, uploaded_file_paths, mount_paths, C1ftp)
+                logger.exception(f"{e} - {ctx.user.name} - (unexpected)")
+                await INSTANCE_LOCK_global.release(ctx.author.id)
+                return
+
+            await asyncio.sleep(1)
+            await cleanup(C1ftp, None, uploaded_file_paths, mount_paths)
+            i += 1
+        await cleanup_simple(workspace_folders)
         await INSTANCE_LOCK_global.release(ctx.author.id)
 
     @quick_group.command(description="Apply save wizard quick codes to your save.")
@@ -225,16 +451,16 @@ class Quick(commands.Cog):
             for savegame in entry:
                 basename = os.path.basename(savegame)
 
-                emb1 = embLoading.copy()
-                emb1.description = emb1.description.format(basename=basename, j=j, count_entry=count_entry, i=i, batches=batches)
-                emb2 = embApplied.copy()
-                emb2.description = emb2.description.format(basename=basename, j=j, count_entry=count_entry, i=i, batches=batches)
+                await embed_edit(
+                    msg, embLoading,
+                    description_kwargs=dict(
+                        basename=basename, j=j, count_entry=count_entry, i=i, batches=batches
+                    ), ignore_exc=True
+                )
 
                 try:
-                    await msg.edit(embed=emb1)
                     async with QuickCodes(savegame, codes) as qc:
                         await qc.apply_code()
-                    await msg.edit(embed=emb2)
                 except QuickCodesError as e:
                     e = f"**{str(e)}**" + "\nThe code has to work on all the savefiles you uploaded!"
                     await error_handling(msg, e, workspace_folders, None, None, None)
@@ -247,17 +473,24 @@ class Quick(commands.Cog):
                     await INSTANCE_LOCK_global.release(ctx.author.id)
                     return
 
+                await embed_edit(
+                    msg, embApplied,
+                    description_kwargs=dict(
+                        basename=basename, j=j, count_entry=count_entry, i=i, batches=batches
+                    ), ignore_exc=True
+                )
+
                 completed.append(basename)
                 j += 1
 
             finished_files = completed_print(completed)
 
-            emb = embqcCompleted.copy()
-            emb.description = emb.description.format(finished_files=finished_files, i=i, batches=batches)
-            try:
-                await msg.edit(embed=emb)
-            except discord.HTTPException as e:
-                logger.info(f"Error while editing msg: {e}", exc_info=True)
+            await embed_edit(
+                msg, embqcCompleted,
+                description_kwargs=dict(
+                    finished_files=finished_files, i=i, batches=batches
+                ), ignore_exc=True
+            )
 
             zipname = "savegame_CodeApplied" + f"_{rand_str}" + f"_{i}" + ZIPOUT_NAME[1]
 

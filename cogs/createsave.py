@@ -15,15 +15,22 @@ from data.crypto.helpers import extra_import
 from utils.constants import (
     IP, PORT_FTP, PS_UPLOADDIR, MOUNT_LOCATION, PARAM_NAME, COMMAND_COOLDOWN, SAVESIZE_MB_MIN, SAVESIZE_MB_MAX, SCE_SYS_NAME,
     SAVEBLOCKS_MAX, SAVEBLOCKS_MIN, SCE_SYS_CONTENTS, BASE_ERROR_MSG, PS_ID_DESC, ZIPOUT_NAME, SHARED_GD_LINK_DESC,
-    IGNORE_SECONDLAYER_DESC, RANDOMSTRING_LENGTH, MAX_FILES, CON_FAIL_MSG, CON_FAIL, MAX_FILENAME_LEN, MAX_PATH_LEN,
+    IGNORE_SECONDLAYER_DESC, MAX_FILES, CON_FAIL_MSG, CON_FAIL,
     logger
 )
 from utils.embeds import (
     embSceSys, embgs, embc, embCRdone
 )
 from utils.workspace import make_workspace, init_workspace, cleanup
-from utils.helpers import DiscordContext, error_handling, upload2, send_final, psusername, upload2_special, task_handler
-from utils.orbis import sfo_ctx_patch_parameters, obtainCUSA, validate_savedirname, sfo_ctx_create, sfo_ctx_write, sys_files_validator, fix_pfs_auth_code_info
+from utils.helpers import (
+    DiscordContext, error_handling, upload2, send_final,
+    psusername, upload2_special, task_handler, embed_edit, embed_construct
+)
+from utils.orbis import (
+    sfo_ctx_patch_parameters, obtainCUSA,
+    validate_savedirname, validate_savedirname_path,
+    sfo_ctx_create, sfo_ctx_write, sys_files_validator, fix_pfs_auth_code_info
+)
 from utils.exceptions import PSNIDError, FileError, OrbisError, WorkspaceError, TaskCancelledError
 from utils.instance_lock import INSTANCE_LOCK_global
 from utils.conversions import saveblocks_to_bytes, mb_to_saveblocks
@@ -73,12 +80,20 @@ class CreateSave(commands.Cog):
             await INSTANCE_LOCK_global.release(ctx.author.id)
             return
 
-        emb1 = embSceSys.copy()
-        emb1.title = emb1.title.format(savename=savename)
-
-        emb2 = embgs.copy()
-        emb2.title = emb2.title.format(savename=savename)
-        emb2.description = emb2.description.format(splitvalue=self.DISC_UPL_SPLITVALUE)
+        emb1 = embed_construct(
+            embSceSys, title_kwargs=dict(
+                savename=savename
+            )
+        )
+        emb2 = embed_construct(
+            embgs,
+            title_kwargs=dict(
+                savename=savename
+            ),
+            description_kwargs=dict(
+                splitvalue=self.DISC_UPL_SPLITVALUE
+            )
+        )
 
         msg = ctx
 
@@ -88,18 +103,9 @@ class CreateSave(commands.Cog):
             shared_gd_folderid = await gdapi.parse_sharedfolder_link(shared_gd_link)
 
             # value checks
-            if not validate_savedirname(savename):
-                raise OrbisError("Invalid savename!")
-
+            validate_savedirname(savename)
             # length checks
-            filename_bin = f"{savename}.bin_{'X' * RANDOMSTRING_LENGTH}"
-            filename_bin_len = len(filename_bin)
-            path_len = len(PS_UPLOADDIR + "/" + filename_bin + "/")
-
-            if filename_bin_len > MAX_FILENAME_LEN:
-                raise OrbisError(f"The length of the savename will exceed {MAX_FILENAME_LEN}!")
-            elif path_len > MAX_PATH_LEN:
-                raise OrbisError(f"The path the save creates will exceed {MAX_PATH_LEN}!")
+            validate_savedirname_path(savename)
 
             msg = await ctx.edit(embed=emb1)
             msg = await ctx.fetch_message(msg.id) # use message id instead of interaction token, this is so our command can last more than 15 min
@@ -108,7 +114,10 @@ class CreateSave(commands.Cog):
             # handle sce_sys first
             await aiofiles.os.mkdir(scesys_local)
             await asyncio.sleep(0.5)
-            uploaded_file_paths_sys = (await upload2(d_ctx, scesys_local, max_files=len(SCE_SYS_CONTENTS), sys_files=True, ps_save_pair_upload=False, ignore_filename_check=False))[0]
+            uploaded_file_paths_sys = (await upload2(
+                d_ctx, scesys_local,
+                max_files=len(SCE_SYS_CONTENTS), sys_files=True, ps_save_pair_upload=False, ignore_filename_check=False)
+            )[0]
             sys_files_validator(uploaded_file_paths_sys)
 
             # next, other files (gamesaves)
@@ -142,9 +151,12 @@ class CreateSave(commands.Cog):
             if not ignore_secondlayer_checks:
                 await extra_import(title_id, newUPLOAD_DECRYPTED, savename)
 
-            emb = embc.copy()
-            emb.description = emb.description.format(savename=savename)
-            await msg.edit(embed=emb)
+            await embed_edit(
+                msg, embc,
+                description_kwargs=dict(
+                    savename=savename
+                ), ignore_exc=True
+            )
 
             temp_savename = savename + f"_{rand_str}"
             mount_location_new = MOUNT_LOCATION + "/" + rand_str
@@ -177,14 +189,12 @@ class CreateSave(commands.Cog):
             await aiofiles.os.makedirs(save_dirs)
 
             # download save at real filename path
-            ftp_ctx = await C1ftp.create_ctx()
             savepath = os.path.join(save_dirs, savename)
             tasks = [
-                lambda: C1ftp.download_stream(ftp_ctx, PS_UPLOADDIR + "/" + temp_savename, savepath),
-                lambda: C1ftp.download_stream(ftp_ctx, PS_UPLOADDIR + "/" + temp_savename + ".bin", savepath + ".bin")
+                lambda: C1ftp.download_file_streamed(PS_UPLOADDIR + "/" + temp_savename, savepath),
+                lambda: C1ftp.download_file_streamed(PS_UPLOADDIR + "/" + temp_savename + ".bin", savepath + ".bin")
             ]
             await task_handler(d_ctx, tasks, [])
-            await C1ftp.free_ctx(ftp_ctx)
             await fix_pfs_auth_code_info(savepath)
         except (SocketError, FTPError, OSError, OrbisError, TaskCancelledError) as e:
             status = "expected"
@@ -206,12 +216,12 @@ class CreateSave(commands.Cog):
             await INSTANCE_LOCK_global.release(ctx.author.id)
             return
 
-        emb = embCRdone.copy()
-        emb.description = emb.description.format(savename=savename, id=playstation_id or user_id)
-        try:
-            await msg.edit(embed=emb)
-        except discord.HTTPException as e:
-            logger.info(f"Error while editing msg: {e}", exc_info=True)
+        await embed_edit(
+            msg, embCRdone,
+            description_kwargs=dict(
+                savename=savename, id=playstation_id or user_id
+            )
+        )
 
         zipname = ZIPOUT_NAME[0] + f"_{rand_str}_1" + ZIPOUT_NAME[1]
 

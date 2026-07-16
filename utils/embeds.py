@@ -20,13 +20,6 @@ embUtimeout = discord.Embed(
 )
 embUtimeout.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
-embgdt = discord.Embed(
-    title="Google drive upload: Error",
-    description="You did not respond with the link in time!",
-    colour=Color.DEFAULT.value
-)
-embgdt.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
 embhttp = discord.Embed(
     title="HttpError",
     description="Are you sure that you uploaded binary content?",
@@ -339,8 +332,8 @@ embgs = discord.Embed(
     description=(
         "Please attach the gamesave files you want to upload.\n"
         "**FOLLOW THESE INSTRUCTIONS CAREFULLY**\n\n"
-        "For **discord uploads** rename the files according to the path they are going to have inside the savefile using the value '{splitvalue}'. For example the file 'savedata' inside the data directory would be called 'data{splitvalue}savedata'.\n\n"
-        "For **google drive uploads** just create the directories on the drive and send the folder link from root, it will be recursively downloaded.\n\n"
+        "For **Discord uploads** rename the files according to the path they are going to have inside the savefile using the value '{splitvalue}'. For example the file 'savedata' inside the data directory would be called 'data{splitvalue}savedata'.\n\n"
+        "For **Google Drive uploads** just create the directories on the drive and send the folder link from root, it will be recursively downloaded.\n\n"
         "*Or type 'EXIT' to cancel command.*"
     ),
     colour=Color.DEFAULT.value
@@ -643,48 +636,6 @@ embchrdr2 = discord.Embed(
 )
 embchrdr2.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
 
-embfn = discord.Embed(
-    title="Upload alert: Error",
-    description="Sorry, the file name of '{filename}' ({len}) exceeds {max}.",
-    colour=Color.DEFAULT.value
-)
-embfn.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
-embFileLarge = discord.Embed(
-    title="Upload alert: Error",
-    description="Sorry, the file size of '{filename}' exceeds the limit of {max} MB.",
-    colour=Color.DEFAULT.value
-)
-embFileLarge.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
-embnvSys = discord.Embed(
-    title="Upload alert: Error",
-    description="{filename} is not a valid sce_sys file!",
-    colour=Color.DEFAULT.value
-)
-embnvSys.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
-embpn = discord.Embed(
-    title="Upload alert: Error",
-    description="Sorry, the path '{filename}' ({len}) will create exceed ({max}).",
-    colour=Color.DEFAULT.value
-)
-embpn.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
-embnvBin = discord.Embed(
-    title="Upload alert: Error",
-    description="Sorry, the file size of '{filename}' is not {size} bytes.",
-    colour=Color.DEFAULT.value
-)
-embnvBin.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
-embffn = discord.Embed(
-    title="Upload alert: Error",
-    description="Sorry, the amount of files/folders in {path} exceeds {max}.",
-    colour=Color.DEFAULT.value
-)
-embffn.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
-
 embgddone = discord.Embed(
     title="Google drive upload: Retrieved file",
     description="{filename} has been uploaded and saved ({i}/{filecount}).",
@@ -806,3 +757,28 @@ embwlcom3.set_footer(
     text="Hosted by That_Kidd | Help from Owwlz",
     icon_url="https://cdn.discordapp.com/attachments/1381758125517836288/1385727626097852416/pfp.png?ex=68571eeb&is=6855cd6b&hm=0736f514d6895836a4d46641992ac9520ecc5a4d2660743741695ee1077cc448&"
 )
+embzip1 = discord.Embed(
+    title="Upload folder",
+    description="Please attach one or more ZIP files each containing a sufficient folder to produce a valid savefile.",
+    colour=Color.DEFAULT.value
+)
+embzip1.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
+
+embc_bulk = discord.Embed(
+    title="Processing",
+    description="Creating **{savename}**, (save {j}/{savecount}, batch {i}/{batches}), please wait...\nSend 'EXIT' to cancel.",
+    colour=Color.DEFAULT.value
+)
+embc_bulk.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
+
+embCRdone_bulk = discord.Embed(
+    title="Creation process: Successful",
+    description=(
+        "**{printed}** resigned to **{id}** (batch {i}/{batches}).\n"
+        "Uploading file...\n"
+        "If file is being uploaded to Google Drive, you can send 'EXIT' to cancel."
+    ),
+    colour=Color.DEFAULT.value
+)
+embCRdone_bulk.set_footer(text=Embed_t.DEFAULT_FOOTER.value)
+

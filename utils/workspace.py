@@ -1,3 +1,8 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from network.ftp_functions import FTPps
+
 import os
 import sys
 import sqlite3
@@ -12,7 +17,6 @@ from dataclasses import dataclass
 from ftplib import FTP, error_perm
 from psnawp_api.core.psnawp_exceptions import PSNAWPNotFoundError, PSNAWPAuthenticationError
 
-from network.ftp_functions import FTPps
 from network.exceptions import FTPError
 from google_drive.exceptions import GDapiError
 from utils.constants import (
@@ -153,7 +157,12 @@ def startup(opt: WorkspaceOpt, lite: bool = False):
         logger.error(f"Error creating databases: {e}")
         sys.exit()
 
-async def cleanup(fInstance: FTPps, local_folders: list[str] | None, remote_savelist: list[str] | None, remote_mount_paths: list[str] | None) -> None:
+async def cleanup(
+          fInstance: FTPps,
+          local_folders: list[str] | None,
+          remote_savelist: list[str] | None,
+          remote_mount_paths: list[str] | None
+        ) -> None:
     """Used to cleanup after a command utilizing the ps4 (remote)."""
     if local_folders is not None and len(local_folders) > 0:
         for folderpath in local_folders:

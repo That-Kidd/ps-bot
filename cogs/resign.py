@@ -16,7 +16,10 @@ from utils.embeds import (
     embEncrypted1, embres, embress, embRbdone
 )
 from utils.workspace import init_workspace, make_workspace, cleanup, cleanup_simple
-from utils.helpers import DiscordContext, psusername, upload2, error_handling, send_final, task_handler
+from utils.helpers import (
+    DiscordContext, psusername, upload2, error_handling, send_final, task_handler,
+    embed_construct, embed_edit
+)
 from utils.orbis import SaveBatch, SaveFile
 from utils.exceptions import PSNIDError, FileError, OrbisError, WorkspaceError, TaskCancelledError
 from utils.instance_lock import INSTANCE_LOCK_global
@@ -52,7 +55,10 @@ class Resign(commands.Cog):
             msg = await ctx.edit(embed=embEncrypted1)
             msg = await ctx.fetch_message(msg.id) # use message id instead of interaction token, this is so our command can last more than 15 min
             d_ctx = DiscordContext(ctx, msg) # this is for passing into functions that need both
-            uploaded_file_paths = await upload2(d_ctx, newUPLOAD_ENCRYPTED, max_files=MAX_FILES, sys_files=False, ps_save_pair_upload=True, ignore_filename_check=False)
+            uploaded_file_paths = await upload2(
+                d_ctx, newUPLOAD_ENCRYPTED,
+                max_files=MAX_FILES, sys_files=False, ps_save_pair_upload=True, ignore_filename_check=False
+            )
         except HTTPError as e:
             err = gdapi.get_err_str_HTTPERROR(e)
             await error_handling(msg, err, workspace_folders, None, None, None)
@@ -91,17 +97,23 @@ class Resign(commands.Cog):
                 try:
                     await savefile.construct()
 
-                    emb = embres.copy()
-                    emb.description = emb.description.format(savename=savefile.basename, j=j, savecount=batch.savecount, i=i, batches=batches)
+                    emb = embed_construct(
+                        embres, description_kwargs=dict(
+                            savename=savefile.basename, j=j, savecount=batch.savecount, i=i, batches=batches
+                        )
+                    )
                     tasks = [
                         savefile.dump,
                         savefile.resign
                     ]
                     await task_handler(d_ctx, tasks, [emb])
 
-                    emb = embress.copy()
-                    emb.description = emb.description.format(savename=savefile.basename, id=playstation_id or user_id, j=j, savecount=batch.savecount, i=i, batches=batches)
-                    await msg.edit(embed=emb)
+                    await embed_edit(
+                        msg, embress,
+                        description_kwargs=dict(
+                            savename=savefile.basename, id=playstation_id or user_id, j=j, savecount=batch.savecount, i=i, batches=batches
+                        ), ignore_exc=True
+                    )
                     j += 1
                 except (SocketError, FTPError, OrbisError, OSError, TaskCancelledError) as e:
                     status = "expected"
@@ -123,12 +135,12 @@ class Resign(commands.Cog):
                     await INSTANCE_LOCK_global.release(ctx.author.id)
                     return
 
-            emb = embRbdone.copy()
-            emb.description = emb.description.format(printed=batch.printed, id=playstation_id or user_id, i=i, batches=batches)
-            try:
-                await msg.edit(embed=emb)
-            except discord.HTTPException as e:
-                logger.info(f"Error while editing msg: {e}", exc_info=True)
+            await embed_edit(
+                msg, embRbdone,
+                description_kwargs=dict(
+                    printed=batch.printed, id=playstation_id or user_id, i=i, batches=batches
+                ), ignore_exc=True
+            )
 
             zipname = ZIPOUT_NAME[0] + f"_{batch.rand_str}" + f"_{i}" + ZIPOUT_NAME[1]
 
