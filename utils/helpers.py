@@ -33,7 +33,7 @@ from utils.constants import (
 from utils.embeds import (
     embUtimeout, embnt, emb8, embvalidpsn, cancel_notify_emb,
     embe, embuplSuccess, embuplSuccess1, embencupl,
-    embenc_out, embencinst, embgdout, embgames, embgame, embwlcom,
+    embenc_out, embencinst, embgdout, embgames, embgame, embwlcom, embwlcom1, embwlcom2, embwlcom3
 )
 from utils.exceptions import PSNIDError, FileError, WorkspaceError, TaskCancelledError 
 from utils.workspace import (
