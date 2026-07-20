@@ -20,7 +20,7 @@ from aiofiles.threadpool.binary import AsyncBufferedReader
 from Crypto.Cipher import AES, Blowfish, DES3
 from typing import Literal, Any, Self
 
-from utils.constants import SCE_SYS_NAME, RANDOMSTRING_LENGTH, SAVESIZE_MAX
+from utils.constants import SCE_SYS_NAME, RANDOMSTRING_LENGTH
 # from utils.constants import SAVESIZE_MAX
 from utils.conversions import mb_to_bytes, bytes_to_mb
 from utils.type_helpers import Cint, uint8, uint32, uint64
@@ -98,7 +98,7 @@ class CustomCrypto:
         self.size = await self.r_stream.seek(0, 2)
         if self.size > self.SAVESIZE_MAX:
             raise CryptoError(
-                f"File exceeds the maximum processing size limit ({bytes_to_mb(self.SAVESIZE_MAX)})."
+                f"File exceeds the maximum processing size limit ({bytes_to_mb(self.SAVESIZE_MAX)} MB)."
             )
 
     async def read(self, stop_off: int = -1, backwards: bool = False) -> int:
@@ -686,7 +686,7 @@ class CustomCrypto:
 
     async def _comp_write(self, w: bytes, size: int) -> int:
         l = len(w)
-        if size + l > SAVESIZE_MAX:
+        if size + l > self.SAVESIZE_MAX:
             raise CryptoError("Max size reached while compressing!")
         await self.w_stream.write(w)
         return l
@@ -711,7 +711,7 @@ class CustomCrypto:
 
     async def _decomp_write(self, w: bytes, size: int) -> int:
         l = len(w)
-        if size + l > SAVESIZE_MAX:
+        if size + l > self.SAVESIZE_MAX:
             raise CryptoError("Max size reached while decompressing!")
         await self.w_stream.write(w)
         return l
