@@ -60,10 +60,12 @@ script_name = os.path.splitext(os.path.basename(argv[0]))[0]
 if script_name == "bot" or script_name == "app":
     logger = setup_logger(os.path.join("logs", "HTOS.log"), "HTOS_LOGS", "ERROR")
     blacklist_logger = setup_logger(os.path.join("logs", "BLACKLIST.log"), "BLACKLIST_LOGS", "INFO")
+    abuse_logger = setup_logger(os.path.join("logs", "ABUSE.log"), "ABUSE_LOGS", "INFO")
 else:
     logger = logging.getLogger("null")
     logger.addHandler(logging.NullHandler())
     blacklist_logger = logger
+    abuse_logger = logger
 
 # CONFIG
 IP = os.getenv("IP")
@@ -85,7 +87,37 @@ RANDOMSTRING_LENGTH = 10
 DATABASENAME_THREADS = "valid_threads.db"
 DATABASENAME_ACCIDS = "account_ids.db"
 DATABASENAME_BLACKLIST = "blacklist.db"
+DATABASENAME_ABUSE = "abuse.db"
 TOKEN = os.getenv("TOKEN")
+
+def getenv_int(name: str, default: int, minimum: int = 0) -> int:
+    """Read an optional integer setting, never letting a typo stop the bot booting."""
+    raw = os.getenv(name)
+    if not raw:
+        return default
+
+    try:
+        val = int(raw)
+    except ValueError:
+        print(f"{name} is not a number ('{raw}'), using {default}.")
+        logger.error(f"{name} is not a number ('{raw}'), using {default}.")
+        return default
+
+    if val < minimum:
+        print(f"{name} must be at least {minimum} (got {val}), using {default}.")
+        logger.error(f"{name} must be at least {minimum} (got {val}), using {default}.")
+        return default
+    return val
+
+# resign abuse detection, see cogs/abuse.py
+# one save resigned to many different account IDs, a reseller with a master save
+# one discord user resigning to many different account IDs, a reseller in general
+# a limit of 0 would alert on every single resign, so the floor is 1
+ABUSE_SAVE_ACCID_LIMIT = getenv_int("ABUSE_SAVE_ACCID_LIMIT", 3, minimum=1)
+ABUSE_USER_ACCID_LIMIT = getenv_int("ABUSE_USER_ACCID_LIMIT", 7, minimum=1)
+ABUSE_WINDOW_DAYS = getenv_int("ABUSE_WINDOW_DAYS", 7, minimum=1)
+# leave unset to only write alerts to logs/ABUSE.log
+ABUSE_LOG_CHANNEL_ID = getenv_int("ABUSE_LOG_CHANNEL_ID", 0)
 # how to obtain NPSSO:
 # go to playstation.com and login
 # go to this link https://ca.account.sony.com/api/v1/ssocookie
