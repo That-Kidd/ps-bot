@@ -5,6 +5,7 @@ if TYPE_CHECKING:
 
 import os
 import sys
+import time
 import sqlite3
 import shutil
 import aiosqlite
@@ -22,7 +23,7 @@ from google_drive.exceptions import GDapiError
 from utils.constants import (
     UPLOAD_DECRYPTED, UPLOAD_ENCRYPTED, DOWNLOAD_DECRYPTED, PNG_PATH, KEYSTONE_PATH, NPSSO_global,
     DOWNLOAD_ENCRYPTED, PARAM_PATH, STORED_SAVES_FOLDER, IP, PORT_FTP, MOUNT_LOCATION, PS_UPLOADDIR, MISC_TIMEOUT,
-    DATABASENAME_THREADS, DATABASENAME_ACCIDS, DATABASENAME_BLACKLIST, BLACKLIST_MESSAGE, RANDOMSTRING_LENGTH, BASE_ERROR_MSG,
+    DATABASENAME_THREADS, DATABASENAME_ACCIDS, DATABASENAME_BLACKLIST, DATABASENAME_ABUSE, BLACKLIST_MESSAGE, RANDOMSTRING_LENGTH, BASE_ERROR_MSG,
     logger, blacklist_logger, psnawp, verify_titleids
 )
 from utils.embeds import emb_il, embChannelError, retry_emb, blacklist_emb, gd_maintenance_emb, embe
@@ -149,6 +150,16 @@ def startup(opt: WorkspaceOpt, lite: bool = False):
                     reason TEXT
             )
         """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        #######
+        conn = sqlite3.connect(DATABASENAME_ABUSE)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        for stmt in ABUSE_SCHEMA:
+            cursor.execute(stmt)
         conn.commit()
         cursor.close()
         conn.close()
@@ -552,6 +563,201 @@ async def blacklist_delall_db() -> None:
     except aiosqlite.Error as e:
         blacklist_logger.error(f"Could not delete all entries in blacklist database: {e}")
         raise WorkspaceError("DB FAIL!")
+
+ABUSE_SCHEMA = (
+    """
+        CREATE TABLE IF NOT EXISTS Resigns (
+                save_hash BLOB,
+                disc_userid BLOB,
+                ps_accountid BLOB,
+                title_id TEXT,
+                ts INTEGER
+        )
+    """,
+    # the rules always filter on ts alongside hash or user, so index the pairs
+    "CREATE INDEX IF NOT EXISTS idx_resigns_hash_ts ON Resigns(save_hash, ts)",
+    "CREATE INDEX IF NOT EXISTS idx_resigns_user_ts ON Resigns(disc_userid, ts)",
+    "CREATE INDEX IF NOT EXISTS idx_resigns_ts ON Resigns(ts)"
+)
+
+# how many account IDs to show in an alert, an embed field caps at 1024 characters
+# and a prolific reseller has far more than fit
+ACCID_SAMPLE_LIMIT = 20
+TITLE_SAMPLE_LIMIT = 30
+ABUSE_DB_TIMEOUT = 15.0
+
+def abuse_connect(db_path: str = DATABASENAME_ABUSE) -> aiosqlite.Connection:
+    """Connect to the abuse db, waiting rather than failing when it is busy.
+
+    Every resign writes here, so concurrent writers are normal.
+    """
+    return aiosqlite.connect(db_path, timeout=ABUSE_DB_TIMEOUT)
+
+async def init_abuse_db(db_path: str = DATABASENAME_ABUSE) -> None:
+    """Create the abuse db schema, shared by startup and tests."""
+    async with abuse_connect(db_path) as db:
+        # WAL lets readers work while a resign is writing, it persists in the db file
+        await db.execute("PRAGMA journal_mode=WAL")
+        for stmt in ABUSE_SCHEMA:
+            await db.execute(stmt)
+        await db.commit()
+
+@dataclass
+class AbuseCounts:
+    """Distinct account ID counts for a resign, used to evaluate the abuse rules.
+
+    The counts come from the db, the lists are only a capped sample for display.
+    Never derive a count from len() of a sample, a prolific reseller has more
+    account IDs than an embed field can hold.
+    """
+    save_accid_count: int   # accids this exact save has been resigned to
+    user_accid_count: int   # accids this discord user has resigned to
+    save_accids: list[int]  # sample, at most ACCID_SAMPLE_LIMIT
+    user_accids: list[int]  # sample, at most ACCID_SAMPLE_LIMIT
+
+def abuse_window_start(window_days: int) -> int:
+    return int(time.time()) - (window_days * 86_400)
+
+async def write_resign_db(
+          save_hash: bytes,
+          disc_userid: int,
+          ps_accountid: str,
+          title_id: str | None,
+          db_path: str = DATABASENAME_ABUSE
+        ) -> None:
+    """Record one resigned savefile."""
+    userId = uint64(disc_userid, "big")
+    accid = uint64(int(ps_accountid, 16), "big")
+
+    async with abuse_connect(db_path) as db:
+        await db.execute(
+            "INSERT INTO Resigns (save_hash, disc_userid, ps_accountid, title_id, ts) VALUES (?, ?, ?, ?, ?)",
+            (save_hash, userId.as_bytes, accid.as_bytes, title_id, int(time.time()),)
+        )
+        await db.commit()
+
+async def check_abuse_db(
+          save_hash: bytes,
+          disc_userid: int,
+          window_days: int,
+          db_path: str = DATABASENAME_ABUSE
+        ) -> AbuseCounts:
+    """Obtain the distinct account IDs tied to this save, and to this user, within the window."""
+    userId = uint64(disc_userid, "big")
+    since = abuse_window_start(window_days)
+
+    async with abuse_connect(db_path) as db:
+        cursor = await db.cursor()
+
+        await cursor.execute(
+            "SELECT COUNT(DISTINCT ps_accountid) FROM Resigns WHERE save_hash = ? AND ts >= ?",
+            (save_hash, since,)
+        )
+        save_count = (await cursor.fetchone())[0]
+
+        await cursor.execute(
+            "SELECT DISTINCT ps_accountid FROM Resigns WHERE save_hash = ? AND ts >= ? LIMIT ?",
+            (save_hash, since, ACCID_SAMPLE_LIMIT,)
+        )
+        save_accids = [uint64(row[0], "big").value for row in await cursor.fetchall()]
+
+        await cursor.execute(
+            "SELECT COUNT(DISTINCT ps_accountid) FROM Resigns WHERE disc_userid = ? AND ts >= ?",
+            (userId.as_bytes, since,)
+        )
+        user_count = (await cursor.fetchone())[0]
+
+        await cursor.execute(
+            "SELECT DISTINCT ps_accountid FROM Resigns WHERE disc_userid = ? AND ts >= ? LIMIT ?",
+            (userId.as_bytes, since, ACCID_SAMPLE_LIMIT,)
+        )
+        user_accids = [uint64(row[0], "big").value for row in await cursor.fetchall()]
+
+    return AbuseCounts(save_count, user_count, save_accids, user_accids)
+
+async def user_resign_summary_db(
+          disc_userid: int,
+          window_days: int,
+          db_path: str = DATABASENAME_ABUSE
+        ) -> dict[str, int | list[str] | bytes | None]:
+    """Summarize one user's resign activity within the window, backs '/abuse check'."""
+    userId = uint64(disc_userid, "big")
+    since = abuse_window_start(window_days)
+
+    async with abuse_connect(db_path) as db:
+        cursor = await db.cursor()
+
+        await cursor.execute(
+            "SELECT COUNT(DISTINCT ps_accountid), COUNT(*) FROM Resigns WHERE disc_userid = ? AND ts >= ?",
+            (userId.as_bytes, since,)
+        )
+        accid_count, resign_count = await cursor.fetchone()
+
+        await cursor.execute(
+            "SELECT COUNT(DISTINCT title_id) FROM Resigns WHERE disc_userid = ? AND ts >= ? AND title_id IS NOT NULL",
+            (userId.as_bytes, since,)
+        )
+        title_count = (await cursor.fetchone())[0]
+
+        await cursor.execute(
+            "SELECT DISTINCT title_id FROM Resigns WHERE disc_userid = ? AND ts >= ? AND title_id IS NOT NULL LIMIT ?",
+            (userId.as_bytes, since, TITLE_SAMPLE_LIMIT,)
+        )
+        title_ids = [row[0] for row in await cursor.fetchall()]
+
+        # the save this user has spread the widest
+        await cursor.execute(
+            """SELECT save_hash, COUNT(DISTINCT ps_accountid) AS c FROM Resigns
+               WHERE disc_userid = ? AND ts >= ?
+               GROUP BY save_hash ORDER BY c DESC LIMIT 1""",
+            (userId.as_bytes, since,)
+        )
+        row = await cursor.fetchone()
+
+    return {
+        "accid_count": accid_count,
+        "resign_count": resign_count,
+        "title_ids": title_ids,
+        "title_count": title_count,
+        "top_save_hash": row[0] if row else None,
+        "top_save_accids": row[1] if row else 0
+    }
+
+async def top_offenders_db(
+          window_days: int,
+          limit: int = 10,
+          db_path: str = DATABASENAME_ABUSE
+        ) -> dict[str, list[tuple[int, int]] | list[tuple[bytes, int]]]:
+    """Busiest users and most reused saves within the window, backs '/abuse top'."""
+    since = abuse_window_start(window_days)
+
+    async with abuse_connect(db_path) as db:
+        cursor = await db.cursor()
+
+        await cursor.execute(
+            """SELECT disc_userid, COUNT(DISTINCT ps_accountid) AS c FROM Resigns
+               WHERE ts >= ? GROUP BY disc_userid ORDER BY c DESC LIMIT ?""",
+            (since, limit,)
+        )
+        users = [(uint64(row[0], "big").value, row[1]) for row in await cursor.fetchall()]
+
+        await cursor.execute(
+            """SELECT save_hash, COUNT(DISTINCT ps_accountid) AS c FROM Resigns
+               WHERE ts >= ? GROUP BY save_hash ORDER BY c DESC LIMIT ?""",
+            (since, limit,)
+        )
+        saves = [(row[0], row[1]) for row in await cursor.fetchall()]
+
+    return {"users": users, "saves": saves}
+
+async def prune_abuse_db(window_days: int, db_path: str = DATABASENAME_ABUSE) -> int:
+    """Drop rows that have aged out of the window, they can no longer affect any rule."""
+    since = abuse_window_start(window_days)
+
+    async with abuse_connect(db_path) as db:
+        cursor = await db.execute("DELETE FROM Resigns WHERE ts < ?", (since,))
+        await db.commit()
+        return cursor.rowcount
 
 async def blacklist_fetchall_db() -> dict[str, list[dict[str | None, str]] | list[dict[str | None, int]]]:
     """Obtain all entries inside the blacklist db."""

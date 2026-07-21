@@ -34,6 +34,18 @@ This way, there is no need for entering the same values.
 When a thread is created, the thread ID is stored locally. Most commands you can only do in these valid threads.  
 There is also a local database for blacklisted Discord user IDs and Playstation account IDs. Using the bot with these values is impossible.  
 
+## Resign abuse detection
+Every save that goes through `/resign` is recorded, as a hash of the uploaded save, the Discord user, and the account ID it was signed to.
+Two patterns raise an alert, both of which suggest someone is reselling saves:
+* one save being resigned to several different account IDs
+* one user resigning to many different account IDs
+
+Alerts go to `logs/ABUSE.log`, and to the channel set in `ABUSE_LOG_CHANNEL_ID` if you configured one.
+The limits are configurable, see [SETUP](SETUP.md).
+Nothing is blocked or blacklisted automatically, an alert only tells you where to look.
+Use `/abuse check` and `/abuse top` to investigate, and `/blacklist add` if you decide to act.
+Records older than the window are deleted automatically once a day.  
+
 ## Commands
 * [Common arguments](#common-arguments)
 * [User commands](#user-commands)
@@ -229,6 +241,18 @@ Minimum 1 argument must be specified.
 
 **Arguments**:  
 `user`: Discord user.  
+
+---
+
+`/abuse check`: Show a user's resign activity within the current window.  
+
+**Arguments**:  
+`user`: Discord user.  
+
+---
+
+`/abuse top`: Show the busiest users and the most reused saves within the current window.
+Useful for spotting resellers staying just under the alert limits.  
 
 ---
 

@@ -20,7 +20,7 @@ from utils.helpers import (
     DiscordContext, psusername, upload2, error_handling, send_final, task_handler,
     embed_construct, embed_edit
 )
-from utils.orbis import SaveBatch, SaveFile
+from utils.orbis import SaveBatch, SaveFile, hash_savefile
 from utils.exceptions import PSNIDError, FileError, OrbisError, WorkspaceError, TaskCancelledError
 from utils.instance_lock import INSTANCE_LOCK_global
 
@@ -97,6 +97,13 @@ class Resign(commands.Cog):
                 try:
                     await savefile.construct()
 
+                    # fingerprint before the save goes to the console, it is untouched now
+                    save_hash = None
+                    try:
+                        save_hash = await hash_savefile(savefile.path)
+                    except OSError as e:
+                        logger.error(f"Could not hash {savefile.basename} for abuse detection: {e}")
+
                     emb = embed_construct(
                         embres, description_kwargs=dict(
                             savename=savefile.basename, j=j, savecount=batch.savecount, i=i, batches=batches
@@ -107,6 +114,11 @@ class Resign(commands.Cog):
                         savefile.resign
                     ]
                     await task_handler(d_ctx, tasks, [emb])
+
+                    # title_id is only populated once savefile.resign has read the sfo
+                    abuse = self.bot.get_cog("Abuse")
+                    if abuse is not None and save_hash is not None:
+                        await abuse.record(ctx.author, user_id, savefile.title_id, save_hash)
 
                     await embed_edit(
                         msg, embress,
