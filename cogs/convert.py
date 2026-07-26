@@ -100,7 +100,7 @@ class Convert(commands.Cog):
                         basename=basename
                     ),
                     description_kwargs=dict(
-                        j=j, count_entry=entry_count, i=i, batches=batches
+                        j=j, entry_count=entry_count, i=i, batches=batches
                     )
                 )
                 try:
@@ -160,7 +160,7 @@ class Convert(commands.Cog):
                 msg, embconvCompleted,
                 description_kwargs=dict(
                     finished_files=finished_files, i=i, batches=batches
-                )
+                ), ignore_exc=True
             )
 
             zipname = "savegame_Converted" + f"_{rand_str}" + f"_{i}" + ZIPOUT_NAME[1]
