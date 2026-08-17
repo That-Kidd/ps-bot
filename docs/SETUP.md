@@ -75,6 +75,13 @@ So for example, you can create the path `"Grand Theft Auto V/CUSA00411/Max money
 `GOOGLE_DRIVE_JSON_PATH`: Set this to the path to the Google OAuth Client credentials JSON file, or the Google Service Account JSON credentials file.  
 `NPSSO`: The 64 character token that will be used for obtaining account ID from a username.  
 `TOKEN`: The Discord bot token.  
+
+The following are optional, they configure resign abuse detection (see [USAGE](USAGE.md)). Leave them out to use the defaults.  
+`ABUSE_LOG_CHANNEL_ID`: The channel ID where abuse alerts are posted. If unset, alerts are only written to `logs/ABUSE.log`.  
+`ABUSE_SAVE_ACCID_LIMIT`: Alert when one save has been resigned to this many different account IDs (default `3`).  
+`ABUSE_USER_ACCID_LIMIT`: Alert when one user has resigned to this many different account IDs (default `7`).  
+`ABUSE_WINDOW_DAYS`: How many days back the two limits above are counted over (default `7`).  
+
 Make sure the bot has the `Message Content` intent.  
 And in the channel where the bot will operate it needs the following permissions:
 * `Send Messages`

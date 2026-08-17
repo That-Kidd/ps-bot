@@ -10,6 +10,7 @@ import aiofiles.os
 import os
 import struct
 import shutil
+import hashlib
 from enum import Enum
 from dataclasses import dataclass
 from Crypto.Cipher import AES
@@ -27,6 +28,8 @@ from utils.conversions import bytes_to_saveblocks, mb_to_bytes, saveblocks_to_by
 
 SFO_MAGIC = 0x46535000
 SFO_VERSION = 0x0101
+HASH_CHUNK_SIZE = 0x100_000
+HASH_IMAGE_LIMIT = 0x800_000
 
 SAVEDIR_RE = re.compile(r"^[a-zA-Z0-9\-_.\@]+$")
 TITLE_ID_RE = re.compile(r"^CUSA\d{5}$")
@@ -553,6 +556,32 @@ async def parse_sealedkey(keypath: str, key: PfsSKKey | None = None) -> None | P
     if not key.validate():
         raise OrbisError(f"Invalid sealed key: {os.path.basename(keypath)}!")
     return key if retkey else None
+
+async def hash_savefile(save_path: str) -> bytes:
+    """Fingerprint an uploaded save, used to spot the same save being resigned repeatedly.
+
+    Must be called before the save is sent to the console, the image is untouched then.
+
+    Covers the whole sealed key, the image size, and the head of the image, rather
+    than the whole image. A save can be up to SAVESIZE_MAX with MAX_FILES of them in
+    one command, so hashing every byte would mean a lot of reading per resign for no
+    real gain, the sealed key already differs per save.
+    """
+    digest = hashlib.sha256()
+
+    async with aiofiles.open(save_path + ".bin", "rb") as f:
+        digest.update(await f.read())
+
+    size = await aiofiles.os.path.getsize(save_path)
+    digest.update(struct.pack("<Q", size))
+
+    remaining = HASH_IMAGE_LIMIT
+    async with aiofiles.open(save_path, "rb") as f:
+        while remaining > 0 and (chunk := await f.read(min(HASH_CHUNK_SIZE, remaining))):
+            digest.update(chunk)
+            remaining -= len(chunk)
+
+    return digest.digest()
 
 def sys_files_validator(sys_files: list[str]) -> None:
     n = len(sys_files)
