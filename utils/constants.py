@@ -7,7 +7,7 @@ import time
 from sys import argv
 from discord.ext import commands
 from psnawp_api import PSNAWP
-from utils.conversions import mb_to_bytes, saveblocks_to_bytes, minutes_to_seconds, bytes_to_mb, hours_to_seconds
+from utils.conversions import gb_to_bytes, mb_to_bytes, saveblocks_to_bytes, minutes_to_seconds, bytes_to_mb, hours_to_seconds
 
 VERSION = "v4.0.0"
 
@@ -86,12 +86,7 @@ DATABASENAME_THREADS = "valid_threads.db"
 DATABASENAME_ACCIDS = "account_ids.db"
 DATABASENAME_BLACKLIST = "blacklist.db"
 TOKEN = os.getenv("TOKEN")
-# how to obtain NPSSO:
-# go to playstation.com and login
-# go to this link https://ca.account.sony.com/api/v1/ssocookie
-# find {"npsso":"<64 character npsso code>"}
 
-# if you leave it None the psn.flipscreen.games website will be used to obtain account ID
 class NPSSO:
     def __init__(self) -> None:
         self.val: str = os.getenv("NPSSO")
@@ -112,7 +107,6 @@ else:
 # BOT INITIALIZATION
 activity = discord.Activity(type=discord.ActivityType.playing, name="on a JB PS4")
 intents = discord.Intents.default()
-intents.message_content = True
 
 bot = commands.Bot(command_prefix=">", activity=activity, intents=intents)
 
@@ -296,8 +290,8 @@ def verify_titleids() -> None:
 SPECIAL_REREGION_TITLEIDS = frozenset.union(XENO2_TITLEID, MGSV_GZ_TITLEID, MGSV_TPP_TITLEID, MINECRAFT_TITLEID)
 
 # BOT CONFIG
-DISCORD_SAVEGAME_MAX = mb_to_bytes(500) # discord file limit for nitro users
-DISCORD_TOTAL_SIZE_LIMIT = mb_to_bytes(500) # discord file limit for nitro users
+DISCORD_SAVEGAME_MAX = gb_to_bytes(1) # discord file size limit for nitro users
+DISCORD_TOTAL_SIZE_LIMIT = gb_to_bytes(1) # discord file size limit for nitro users
 SYS_FILE_MAX = mb_to_bytes(1) # sce_sys files are not that big so 1 MB, keep this low
 MAX_FILES = 100
 UPLOAD_TIMEOUT = minutes_to_seconds(10) # how long the user has to upload files or send google drive folder link
@@ -306,7 +300,7 @@ GENERAL_TIMEOUT = hours_to_seconds(1) # how long files can actually be downloade
 MISC_TIMEOUT = minutes_to_seconds(1) # how long single operations like cleaning up a folder, or requesting keyset from the console can take
 GENERAL_CHUNKSIZE = mb_to_bytes(32)
 COMMAND_COOLDOWN = 30 # seconds, for all general commands
-BOT_DISCORD_UPLOAD_LIMIT = mb_to_bytes(10) # 10 mb maximum when not considering boost levels
+BOT_DISCORD_UPLOAD_LIMIT = mb_to_bytes(20) # 20 mb maximum when not considering boost levels
 
 PS_ID_DESC = "Your Playstation Network username. Do not include if you want to use the previous one."
 IGNORE_SECONDLAYER_DESC = "If you want the bot to neglect checking if the files inside your save can be encrypted/compressed."
@@ -356,4 +350,5 @@ CON_FAIL_MSG = "PS4 not connected!"
 EMBED_TITLE_LIMIT = 256
 EMBED_DESC_LIMIT = 4096
 EMBED_FIELD_LIMIT = 25
+EMBED_FIELD_VALUE_LIMIT = 1024
 

@@ -1,6 +1,5 @@
 # Usage
 This is mostly for the bot, but some concepts are the same for the app.  
-The bot only takes files, no zips or any other archives.  
 
 ## Threads
 Click the create thread button in the channel that the bot is in. You will get mentioned in the created thread. All commands can be done there.
@@ -22,6 +21,8 @@ Example of an account ID, found inside a save exported from PS4. File structure 
 
 You supply these to the bot by dragging and dropping them through Discord, or by sending a public Google Drive folder link.
 The bot can recursively search for save pairs from a Google Drive folder.  
+
+Make sure that the message with the attachments or link directly replies to the bot's message, and that the reply pings the bot.  
 
 ## Bulk uploads
 All save pair commands accept saves in bulk, except for when you upload a save from your region when re-regioning
@@ -97,11 +98,10 @@ Both `saveblocks` and `savesize_mb` represent the same concept, you must choose 
 The platform will get automatically detected, if not you will be prompted.  
 **If your game is not available**:  
 **PS4 -> PC**: Try to decrypt the PS4 save and use the decrypted file on PC.  
-**PC -> PS4**: Try to encrypt the PC savefile into a PS4 save pair.    
+**PC -> PS4**: Try to encrypt the PC savefile into a PS4 save pair.  
 
 **Arguments**:  
 `game`: Game of the savefile.  
-`savefile`: The savegame.  
 
 ---
 
@@ -115,7 +115,7 @@ The platform will get automatically detected, if not you will be prompted.
 `/change picture`: Accepts a save pair that will get resigned and the save picture will get swapped.  
 
 **Arguments**:  
-`picture`: Image file that you want to use.  
+`picture`: Image file that you want to use. A PNG file with resolution 228x128 and maximum size of 116736 bytes is expected.  
 
 ---
 
